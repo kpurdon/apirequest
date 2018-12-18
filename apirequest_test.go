@@ -59,6 +59,10 @@ func TestRequesterMustAddAPI(t *testing.T) {
 		require.NotNil(t, actual)
 		assert.Equal(t, k, actual.URL())
 	}
+
+	assert.Panics(t, func() {
+		requester.MustAddAPI("test2", direct.NewDiscoverer("test2"))
+	})
 }
 
 func TestRequesterNewRequest(t *testing.T) {
@@ -139,8 +143,12 @@ func TestRequestSetBody(t *testing.T) {
 			body:        &struct{ Test string }{Test: "test"},
 			expectError: false,
 		}, {
-			label:       "invalid body",
+			label:       "invalid non-nil body",
 			body:        make(chan int),
+			expectError: true,
+		}, {
+			label:       "invalid nil body",
+			body:        nil,
 			expectError: true,
 		},
 	}
