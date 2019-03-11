@@ -1,4 +1,4 @@
-[![travis ci status](https://travis-ci.com/kpurdon/apirequest.svg?branch=master)](https://travis-ci.com/kpurdon/apirequest)
+[![CircleCI](https://circleci.com/gh/kpurdon/apirequest.svg?style=svg)](https://circleci.com/gh/kpurdon/apirequest)
 [![codecov status](https://codecov.io/gh/kpurdon/apirequest/branch/master/graph/badge.svg)](https://codecov.io/gh/kpurdon/apirequest)
 [![godoc](https://godoc.org/github.com/kpurdon/apirequest?status.svg)](http://godoc.org/github.com/kpurdon/apirequest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kpurdon/apirequest)](https://goreportcard.com/report/github.com/kpurdon/apirequest)

@@ -1,0 +1,13 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+  misspell:
+    locale: US
+  lll:
+    line-length: 150
+
+linters:
+  enable-all: true
+  disable:
+    - maligned
+    - gochecknoglobals

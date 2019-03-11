@@ -29,7 +29,7 @@ func TestNewRequester(t *testing.T) {
 		}, {
 			label:           "custom httpclient",
 			client:          &http.Client{Timeout: 10 * time.Second},
-			expectedTimeout: time.Duration(10 * time.Second),
+			expectedTimeout: 10 * time.Second,
 		},
 	}
 
@@ -279,7 +279,8 @@ func TestRequesterExecute(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"test":"test"}`))
+			_, err := w.Write([]byte(`{"test":"test"}`))
+			require.NoError(t, err)
 		}))
 		defer ts.Close()
 
@@ -301,7 +302,8 @@ func TestRequesterExecute(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"test":"test"}`))
+			_, err := w.Write([]byte(`{"test":"test"}`))
+			require.NoError(t, err)
 		}))
 		defer ts.Close()
 
@@ -324,7 +326,8 @@ func TestRequesterExecute(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"test":"test"}`))
+			_, err := w.Write([]byte(`{"test":"test"}`))
+			require.NoError(t, err)
 		}))
 		defer ts.Close()
 
