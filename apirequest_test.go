@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewRequester(t *testing.T) {
+func TestNewClient(t *testing.T) {
 	testCases := []struct {
 		label           string
 		client          *http.Client
@@ -39,33 +39,33 @@ func TestNewRequester(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.label)
 
-			requester := NewRequester("test", tc.client)
-			require.NotNil(t, requester)
+			c := NewClient("test", tc.client)
+			require.NotNil(t, c)
 
-			assert.Equal(t, "test", requester.apiName)
-			assert.NotNil(t, requester.apis, "apis is an initialized map")
-			assert.Len(t, requester.apis, 0, "apis is an empty map")
-			assert.Equal(t, tc.expectedTimeout, requester.Client.Timeout)
+			assert.Equal(t, "test", c.apiName)
+			assert.NotNil(t, c.apis, "apis is an initialized map")
+			assert.Len(t, c.apis, 0, "apis is an empty map")
+			assert.Equal(t, tc.expectedTimeout, c.Client.Timeout)
 		})
 	}
 }
 
-func TestRequesterMustAddAPI(t *testing.T) {
-	requester := NewRequester("test", nil)
-	requester.MustAddAPI("test1", direct.NewDiscoverer("test1"))
-	requester.MustAddAPI("test2", direct.NewDiscoverer("test2"))
+func TestClientMustAddAPI(t *testing.T) {
+	c := NewClient("test", nil)
+	c.MustAddAPI("test1", direct.NewDiscoverer("test1"))
+	c.MustAddAPI("test2", direct.NewDiscoverer("test2"))
 
-	for k, actual := range requester.apis {
+	for k, actual := range c.apis {
 		require.NotNil(t, actual)
 		assert.Equal(t, k, actual.URL())
 	}
 
 	assert.Panics(t, func() {
-		requester.MustAddAPI("test2", direct.NewDiscoverer("test2"))
+		c.MustAddAPI("test2", direct.NewDiscoverer("test2"))
 	})
 }
 
-func TestRequesterNewRequest(t *testing.T) {
+func TestClientNewRequest(t *testing.T) {
 	baseURL := "http://127.0.0.1"
 
 	testCases := []struct {
@@ -107,9 +107,9 @@ func TestRequesterNewRequest(t *testing.T) {
 		},
 	}
 
-	requester := NewRequester("test", nil)
-	require.NotNil(t, requester)
-	requester.MustAddAPI("test", direct.NewDiscoverer(baseURL))
+	c := NewClient("test", nil)
+	require.NotNil(t, c)
+	c.MustAddAPI("test", direct.NewDiscoverer(baseURL))
 
 	for i, tc := range testCases {
 		tc := tc
@@ -117,7 +117,7 @@ func TestRequesterNewRequest(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.label)
 
-			actual, err := requester.NewRequest(tc.apiName, tc.method, tc.url)
+			actual, err := c.NewRequest(tc.apiName, tc.method, tc.url)
 			if err != nil {
 				assert.EqualError(t, tc.expectedError, err.Error())
 				assert.Nil(t, actual)
@@ -153,9 +153,9 @@ func TestRequestSetBody(t *testing.T) {
 		},
 	}
 
-	requester := NewRequester("test", nil)
-	require.NotNil(t, requester)
-	requester.MustAddAPI("test", direct.NewDiscoverer("http://127.0.0.1"))
+	c := NewClient("test", nil)
+	require.NotNil(t, c)
+	c.MustAddAPI("test", direct.NewDiscoverer("http://127.0.0.1"))
 
 	for i, tc := range testCases {
 		tc := tc
@@ -163,7 +163,7 @@ func TestRequestSetBody(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.label)
 
-			req, err := requester.NewRequest("test", http.MethodGet, "foo/bar")
+			req, err := c.NewRequest("test", http.MethodGet, "foo/bar")
 			require.NoError(t, err)
 			require.NotNil(t, req)
 
@@ -204,9 +204,9 @@ func TestRequestSetQueryParams(t *testing.T) {
 		},
 	}
 
-	requester := NewRequester("test", nil)
-	require.NotNil(t, requester)
-	requester.MustAddAPI("test", direct.NewDiscoverer("http://127.0.0.1"))
+	c := NewClient("test", nil)
+	require.NotNil(t, c)
+	c.MustAddAPI("test", direct.NewDiscoverer("http://127.0.0.1"))
 
 	for i, tc := range testCases {
 		tc := tc
@@ -214,7 +214,7 @@ func TestRequestSetQueryParams(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.label)
 
-			req, err := requester.NewRequest("test", http.MethodGet, "foo/bar")
+			req, err := c.NewRequest("test", http.MethodGet, "foo/bar")
 			require.NoError(t, err)
 			require.NotNil(t, req)
 
@@ -238,9 +238,9 @@ func TestRequestSetUserAgent(t *testing.T) {
 		},
 	}
 
-	requester := NewRequester("test", nil)
-	require.NotNil(t, requester)
-	requester.MustAddAPI("test", direct.NewDiscoverer("http://127.0.0.1"))
+	c := NewClient("test", nil)
+	require.NotNil(t, c)
+	c.MustAddAPI("test", direct.NewDiscoverer("http://127.0.0.1"))
 
 	for i, tc := range testCases {
 		tc := tc
@@ -248,7 +248,7 @@ func TestRequestSetUserAgent(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.label)
 
-			req, err := requester.NewRequest("test", http.MethodGet, "foo/bar")
+			req, err := c.NewRequest("test", http.MethodGet, "foo/bar")
 			require.NoError(t, err)
 			require.NotNil(t, req)
 
@@ -258,19 +258,20 @@ func TestRequestSetUserAgent(t *testing.T) {
 	}
 }
 
-// TODO: refactor this test
-func TestRequesterExecute(t *testing.T) {
+func TestClientExecute(t *testing.T) {
+	// TODO: refactor this test
+
 	t.Run("simple", func(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer ts.Close()
 
-		requester := NewRequester(t.Name(), nil)
-		requester.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
-		req, err := requester.NewRequest("test", http.MethodGet, "/")
+		c := NewClient(t.Name(), nil)
+		c.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
+		req, err := c.NewRequest("test", http.MethodGet, "/")
 		require.NoError(t, err)
-		ok, err := requester.Execute(req, nil, nil)
+		ok, err := c.Execute(req, nil, nil)
 		assert.True(t, ok)
 		assert.NoError(t, err)
 	})
@@ -289,11 +290,11 @@ func TestRequesterExecute(t *testing.T) {
 		}
 		var d data
 
-		requester := NewRequester(t.Name(), nil)
-		requester.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
-		req, err := requester.NewRequest("test", http.MethodGet, "/")
+		c := NewClient(t.Name(), nil)
+		c.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
+		req, err := c.NewRequest("test", http.MethodGet, "/")
 		require.NoError(t, err)
-		ok, err := requester.Execute(req, &d, nil)
+		ok, err := c.Execute(req, &d, nil)
 		assert.True(t, ok)
 		assert.NoError(t, err)
 	})
@@ -312,11 +313,11 @@ func TestRequesterExecute(t *testing.T) {
 		}
 		var d data
 
-		requester := NewRequester(t.Name(), nil)
-		requester.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
-		req, err := requester.NewRequest("test", http.MethodGet, "/")
+		c := NewClient(t.Name(), nil)
+		c.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
+		req, err := c.NewRequest("test", http.MethodGet, "/")
 		require.NoError(t, err)
-		ok, err := requester.Execute(req, nil, &d)
+		ok, err := c.Execute(req, nil, &d)
 		assert.False(t, ok)
 		assert.NoError(t, err)
 		assert.Equal(t, "test", d.Test)
@@ -331,11 +332,11 @@ func TestRequesterExecute(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		requester := NewRequester(t.Name(), nil)
-		requester.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
-		req, err := requester.NewRequest("test", http.MethodGet, "/")
+		c := NewClient(t.Name(), nil)
+		c.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
+		req, err := c.NewRequest("test", http.MethodGet, "/")
 		require.NoError(t, err)
-		ok, err := requester.Execute(req, nil, nil)
+		ok, err := c.Execute(req, nil, nil)
 		assert.False(t, ok)
 		assert.Error(t, err)
 	})
