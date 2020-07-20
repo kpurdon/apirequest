@@ -7,47 +7,52 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// Discoverer defines an interface for discovering HTTP APIs. The discoverers package provides some
-// pre-defined implementations for service discovery.
+// Discoverer defines an interface for discovering HTTP APIs. The discoverers package provides some pre-defined implementations for service discovery.
 type Discoverer interface {
 	URL() string
 }
 
-// Requester is the base type which all helper methods hang on. It should be initialized with the
-// NewRequester method.
-type Requester struct {
+// Requester defines the root package interface.
+type Requester interface {
+	MustAddAPI(apiName string, discoverer Discoverer)
+	NewRequest(apiName, method, url string) (*Request, error)
+	Execute(req *Request, successData, errorData interface{}) (bool, error)
+}
+
+// Client implements the Requester interface.
+type Client struct {
 	apiName string
 	apis    map[string]Discoverer
 	*http.Client
 }
 
-// NewRequester initializes a new Requester.
-func NewRequester(apiName string, client *http.Client) *Requester {
+// NewClient initializes a new Client implementing the Requester interface.
+func NewClient(apiName string, client *http.Client) *Client {
 	if client == nil {
 		client = http.DefaultClient
 	}
-	return &Requester{
+	return &Client{
 		apiName: apiName,
 		apis:    make(map[string]Discoverer),
 		Client:  client,
 	}
 }
 
-// MustAddAPI adds a named API with a Discoverer that will be used when attempting to make requests
-// to the API.
-func (r *Requester) MustAddAPI(apiName string, discoverer Discoverer) {
-	if _, ok := r.apis[apiName]; ok {
+// MustAddAPI adds a named API with a Discoverer that will be used when attempting to make requests to the API.
+func (c *Client) MustAddAPI(apiName string, discoverer Discoverer) {
+	if _, ok := c.apis[apiName]; ok {
 		panic(fmt.Sprintf("api [%s] already initialized", apiName))
 	}
 
 	// TODO: ping the API in some way to ensure connection at startup?
 
-	r.apis[apiName] = discoverer
+	c.apis[apiName] = discoverer
 }
 
 // Request wraps a *http.Request and allows post-creating setting of various properties of the request.
@@ -62,12 +67,12 @@ func (r *Request) SetQueryParams(ps url.Values) {
 
 // SetBody takes a non-nil struct, marshals it to JSON, and sets it as the requests body. It
 // additionally sets the Content-Type header to application/json.
-// TODO: potentially support more Content-Types
 func (r *Request) SetBody(body interface{}) error {
 	if body == nil {
 		return errors.New("body must be non-nil")
 	}
 
+	// TODO: potentially support more Content-Types
 	r.Header.Set("Content-Type", "application/json")
 
 	b, err := json.Marshal(body)
@@ -87,8 +92,8 @@ func (r *Request) SetUserAgent(ua string) {
 
 // NewRequest creates a new http.Request using the Discoverer for the given API name to get the
 // base URL of the API.
-func (r *Requester) NewRequest(apiName, method, url string) (*Request, error) {
-	api, ok := r.apis[apiName]
+func (c *Client) NewRequest(apiName, method, url string) (*Request, error) {
+	api, ok := c.apis[apiName]
 	if !ok {
 		return nil, fmt.Errorf("api [%s] not initialized", apiName)
 	}
@@ -104,7 +109,7 @@ func (r *Requester) NewRequest(apiName, method, url string) (*Request, error) {
 
 	// Go ahead and set a default now while we have all the data. The user can set a custom
 	// value later using the request.SetUserAgent() method.
-	req.Header.Set("User-Agent", fmt.Sprintf("kpurdon/apirequest (for %s)", r.apiName))
+	req.Header.Set("User-Agent", fmt.Sprintf("kpurdon/apirequest (for %s)", c.apiName))
 
 	return &Request{req}, nil
 }
@@ -114,11 +119,17 @@ func (r *Requester) NewRequest(apiName, method, url string) (*Request, error) {
 // An error is only returned for un-handled errors. To handle an error pass a non-nil input to the
 // errorData input that matches a known error response type. The first response boolean will
 // indicate if the request was succesfull or not.
-func (r *Requester) Execute(req *Request, successData, errorData interface{}) (bool, error) {
-	resp, err := r.Do(req.Request)
+func (c *Client) Execute(req *Request, successData, errorData interface{}) (bool, error) {
+	resp, err := c.Do(req.Request)
 	if err != nil {
 		return false, err
 	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// TODO: what is the best thing to do here?
+			log.Print(err)
+		}
+	}()
 
 	if resp.StatusCode >= 400 {
 		if errorData != nil {

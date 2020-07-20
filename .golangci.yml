@@ -9,5 +9,16 @@ linters-settings:
 linters:
   enable-all: true
   disable:
+    - godox # ideally would like this in warning mode (see: https://github.com/golangci/golangci-lint/issues/708)
     - maligned
     - gochecknoglobals
+    - funlen
+    - wsl
+    - gomnd
+    - testpackage # ideally re-enable and enforce black-box testing packages
+    - goerr113
+    - gofumpt
+
+# dont use the default exclusions
+issues:
+  exclude-use-default: false
