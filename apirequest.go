@@ -57,7 +57,7 @@ func (c *Client) MustAddAPI(apiName string, discoverer Discoverer) {
 
 // Request wraps a *http.Request and allows post-creating setting of various properties of the request.
 type Request struct {
-	*http.Request
+	Request *http.Request
 }
 
 // SetQueryParams sets the URL.RawQuery (query params) by encoding the given url.Values.
@@ -111,7 +111,7 @@ func (c *Client) NewRequest(apiName, method, url string) (*Request, error) {
 	// value later using the request.SetUserAgent() method.
 	req.Header.Set("User-Agent", fmt.Sprintf("kpurdon/apirequest (for %s)", c.apiName))
 
-	return &Request{req}, nil
+	return &Request{Request:req}, nil
 }
 
 // Execute executes the given http.Request using the embedded http.Client and optionally decoding
