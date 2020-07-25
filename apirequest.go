@@ -57,12 +57,12 @@ func (c *Client) MustAddAPI(apiName string, discoverer Discoverer) {
 
 // Request wraps a *http.Request and allows post-creating setting of various properties of the request.
 type Request struct {
-	Request *http.Request
+	*http.Request
 }
 
 // SetQueryParams sets the URL.RawQuery (query params) by encoding the given url.Values.
 func (r *Request) SetQueryParams(ps url.Values) {
-	r.Request.URL.RawQuery = ps.Encode()
+	r.URL.RawQuery = ps.Encode()
 }
 
 // SetBody takes a non-nil struct, marshals it to JSON, and sets it as the requests body. It
@@ -73,13 +73,13 @@ func (r *Request) SetBody(body interface{}) error {
 	}
 
 	// TODO: potentially support more Content-Types
-	r.Request.Header.Set("Content-Type", "application/json")
+	r.Header.Set("Content-Type", "application/json")
 
 	b, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-	r.Request.Body = ioutil.NopCloser(bytes.NewReader(b))
+	r.Body = ioutil.NopCloser(bytes.NewReader(b))
 
 	return nil
 }
@@ -87,7 +87,7 @@ func (r *Request) SetBody(body interface{}) error {
 // SetUserAgent sets the User-Agent header to a custom value. If this is not set the default will
 // be used.
 func (r *Request) SetUserAgent(ua string) {
-	r.Request.Header.Set("User-Agent", ua)
+	r.Header.Set("User-Agent", ua)
 }
 
 // NewRequest creates a new http.Request using the Discoverer for the given API name to get the
@@ -111,7 +111,7 @@ func (c *Client) NewRequest(apiName, method, url string) (*Request, error) {
 	// value later using the request.SetUserAgent() method.
 	req.Header.Set("User-Agent", fmt.Sprintf("kpurdon/apirequest (for %s)", c.apiName))
 
-	return &Request{Request: req}, nil
+	return &Request{req}, nil
 }
 
 // Execute executes the given http.Request using the embedded http.Client and optionally decoding

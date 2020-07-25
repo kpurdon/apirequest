@@ -125,9 +125,9 @@ func TestClientNewRequest(t *testing.T) {
 			}
 			require.NotNil(t, actual)
 
-			assert.Equal(t, tc.expectedURL, actual.Request.URL.String())
-			assert.Nil(t, actual.Request.Body)
-			assert.Equal(t, tc.method, actual.Request.Method)
+			assert.Equal(t, tc.expectedURL, actual.URL.String())
+			assert.Nil(t, actual.Body)
+			assert.Equal(t, tc.method, actual.Method)
 		})
 	}
 }
@@ -174,9 +174,9 @@ func TestRequestSetBody(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			assert.Equal(t, "application/json", req.Request.Header.Get("Content-Type"))
+			assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
 
-			actualBody, err := ioutil.ReadAll(req.Request.Body)
+			actualBody, err := ioutil.ReadAll(req.Body)
 			require.NoError(t, err)
 
 			expectedBody, err := json.Marshal(tc.body)
@@ -219,7 +219,7 @@ func TestRequestSetQueryParams(t *testing.T) {
 			require.NotNil(t, req)
 
 			req.SetQueryParams(tc.params)
-			require.Equal(t, tc.params, req.Request.URL.Query())
+			require.Equal(t, tc.params, req.URL.Query())
 		})
 	}
 }
@@ -253,7 +253,7 @@ func TestRequestSetUserAgent(t *testing.T) {
 			require.NotNil(t, req)
 
 			req.SetUserAgent(tc.ua)
-			assert.Equal(t, tc.ua, req.Request.UserAgent())
+			assert.Equal(t, tc.ua, req.UserAgent())
 		})
 	}
 }
