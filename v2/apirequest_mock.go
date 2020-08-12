@@ -1,11 +1,13 @@
 package apirequest
 
+import "io"
+
 // MockClient implements the Requester interface offering complete control over the outputs and tracking calls.
 type MockClient struct {
 	MustAddAPIFn     func(apiName string, discoverer Discoverer)
 	MustAddAPICalled bool
 
-	NewRequestFn     func(apiName, method, url string) (*Request, error)
+	NewRequestFn     func(apiName, method, url string, body io.Reader) (*Request, error)
 	NewRequestCalled bool
 
 	ExecuteFn       func(req *Request, successData, errorData interface{}) (bool, error)
@@ -19,9 +21,9 @@ func (c *MockClient) MustAddAPI(apiName string, discoverer Discoverer) {
 }
 
 // NewRequest implements the Requester.NewRequest method.
-func (c *MockClient) NewRequest(apiName, method, url string) (*Request, error) {
+func (c *MockClient) NewRequest(apiName, method, url string, body io.Reader) (*Request, error) {
 	c.NewRequestCalled = true
-	return c.NewRequestFn(apiName, method, url)
+	return c.NewRequestFn(apiName, method, url, body)
 }
 
 // Execute implements the Requester.Execute method.

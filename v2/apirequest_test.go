@@ -1,10 +1,8 @@
 package apirequest
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -117,7 +115,7 @@ func TestClientNewRequest(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.label)
 
-			actual, err := c.NewRequest(tc.apiName, tc.method, tc.url)
+			actual, err := c.NewRequest(tc.apiName, tc.method, tc.url, nil)
 			if err != nil {
 				assert.EqualError(t, tc.expectedError, err.Error())
 				assert.Nil(t, actual)
@@ -128,61 +126,6 @@ func TestClientNewRequest(t *testing.T) {
 			assert.Equal(t, tc.expectedURL, actual.URL.String())
 			assert.Nil(t, actual.Body)
 			assert.Equal(t, tc.method, actual.Method)
-		})
-	}
-}
-
-func TestRequestSetBody(t *testing.T) {
-	testCases := []struct {
-		label       string
-		body        interface{}
-		expectError bool
-	}{
-		{
-			label:       "valid body",
-			body:        &struct{ Test string }{Test: "test"},
-			expectError: false,
-		}, {
-			label:       "invalid non-nil body",
-			body:        make(chan int),
-			expectError: true,
-		}, {
-			label:       "invalid nil body",
-			body:        nil,
-			expectError: true,
-		},
-	}
-
-	c := NewClient("test", nil)
-	require.NotNil(t, c)
-	c.MustAddAPI("test", direct.NewDiscoverer("http://127.0.0.1"))
-
-	for i, tc := range testCases {
-		tc := tc
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			t.Parallel()
-			t.Log(tc.label)
-
-			req, err := c.NewRequest("test", http.MethodGet, "foo/bar")
-			require.NoError(t, err)
-			require.NotNil(t, req)
-
-			err = req.SetBody(tc.body)
-			if tc.expectError {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-
-			assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
-
-			actualBody, err := ioutil.ReadAll(req.Body)
-			require.NoError(t, err)
-
-			expectedBody, err := json.Marshal(tc.body)
-			require.NoError(t, err)
-
-			assert.Equal(t, string(expectedBody), string(actualBody))
 		})
 	}
 }
@@ -214,7 +157,7 @@ func TestRequestSetQueryParams(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.label)
 
-			req, err := c.NewRequest("test", http.MethodGet, "foo/bar")
+			req, err := c.NewRequest("test", http.MethodGet, "foo/bar", nil)
 			require.NoError(t, err)
 			require.NotNil(t, req)
 
@@ -248,7 +191,7 @@ func TestRequestSetUserAgent(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.label)
 
-			req, err := c.NewRequest("test", http.MethodGet, "foo/bar")
+			req, err := c.NewRequest("test", http.MethodGet, "foo/bar", nil)
 			require.NoError(t, err)
 			require.NotNil(t, req)
 
@@ -269,7 +212,7 @@ func TestClientExecute(t *testing.T) {
 
 		c := NewClient(t.Name(), nil)
 		c.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
-		req, err := c.NewRequest("test", http.MethodGet, "/")
+		req, err := c.NewRequest("test", http.MethodGet, "/", nil)
 		require.NoError(t, err)
 		ok, err := c.Execute(req, nil, nil)
 		assert.True(t, ok)
@@ -292,7 +235,7 @@ func TestClientExecute(t *testing.T) {
 
 		c := NewClient(t.Name(), nil)
 		c.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
-		req, err := c.NewRequest("test", http.MethodGet, "/")
+		req, err := c.NewRequest("test", http.MethodGet, "/", nil)
 		require.NoError(t, err)
 		ok, err := c.Execute(req, &d, nil)
 		assert.True(t, ok)
@@ -315,7 +258,7 @@ func TestClientExecute(t *testing.T) {
 
 		c := NewClient(t.Name(), nil)
 		c.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
-		req, err := c.NewRequest("test", http.MethodGet, "/")
+		req, err := c.NewRequest("test", http.MethodGet, "/", nil)
 		require.NoError(t, err)
 		ok, err := c.Execute(req, nil, &d)
 		assert.False(t, ok)
@@ -334,7 +277,7 @@ func TestClientExecute(t *testing.T) {
 
 		c := NewClient(t.Name(), nil)
 		c.MustAddAPI("test", direct.NewDiscoverer(ts.URL))
-		req, err := c.NewRequest("test", http.MethodGet, "/")
+		req, err := c.NewRequest("test", http.MethodGet, "/", nil)
 		require.NoError(t, err)
 		ok, err := c.Execute(req, nil, nil)
 		assert.False(t, ok)
