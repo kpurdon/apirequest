@@ -1,4 +1,4 @@
-module github.com/kpurdon/apirequest/v2
+module github.com/kpurdon/apirequest
 
 go 1.14
 
