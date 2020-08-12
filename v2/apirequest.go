@@ -2,11 +2,9 @@
 package apirequest
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -21,7 +19,7 @@ type Discoverer interface {
 // Requester defines the root package interface.
 type Requester interface {
 	MustAddAPI(apiName string, discoverer Discoverer)
-	NewRequest(apiName, method, url string) (*Request, error)
+	NewRequest(apiName, method, url string, body io.Reader) (*Request, error)
 	Execute(req *Request, successData, errorData interface{}) (bool, error)
 }
 
@@ -65,25 +63,6 @@ func (r *Request) SetQueryParams(ps url.Values) {
 	r.URL.RawQuery = ps.Encode()
 }
 
-// SetBody takes a non-nil struct, marshals it to JSON, and sets it as the requests body. It
-// additionally sets the Content-Type header to application/json.
-func (r *Request) SetBody(body interface{}) error {
-	if body == nil {
-		return errors.New("body must be non-nil")
-	}
-
-	// TODO: potentially support more Content-Types
-	r.Header.Set("Content-Type", "application/json")
-
-	b, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-	r.Body = ioutil.NopCloser(bytes.NewReader(b))
-
-	return nil
-}
-
 // SetUserAgent sets the User-Agent header to a custom value. If this is not set the default will
 // be used.
 func (r *Request) SetUserAgent(ua string) {
@@ -92,7 +71,7 @@ func (r *Request) SetUserAgent(ua string) {
 
 // NewRequest creates a new http.Request using the Discoverer for the given API name to get the
 // base URL of the API.
-func (c *Client) NewRequest(apiName, method, url string) (*Request, error) {
+func (c *Client) NewRequest(apiName, method, url string, body io.Reader) (*Request, error) {
 	api, ok := c.apis[apiName]
 	if !ok {
 		return nil, fmt.Errorf("api [%s] not initialized", apiName)
@@ -102,9 +81,14 @@ func (c *Client) NewRequest(apiName, method, url string) (*Request, error) {
 		strings.TrimRight(api.URL(), "/"), // removes any trailing slash
 		strings.TrimLeft(url, "/"))        // removes any leading slash
 
-	req, err := http.NewRequest(method, reqURL, nil)
+	req, err := http.NewRequest(method, reqURL, body)
 	if err != nil {
 		return nil, err
+	}
+
+	// TODO: potentially support more content types
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
 	}
 
 	// Go ahead and set a default now while we have all the data. The user can set a custom
